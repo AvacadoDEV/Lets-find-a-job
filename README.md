@@ -8,43 +8,134 @@
 
 ## What This Is
 
-A job search system you configure once for your role, location, and salary target — then let run. Fork it, point it at your industry, and it handles the grunt work. It's a 3-layer pipeline:
+A job search system you configure once for your role, location, and salary target — then let run. Fork it, point it at your industry, and it handles the grunt work.
+
+The recommended entry point is a single command:
 
 ```
-Layer 1 — Discover    /career-ops scan
-           Searches 30+ company portals and job boards for matching roles.
-           Filters by title, location, and salary range automatically.
-
-Layer 2 — Shortlist   /career-ops shortlist review
-           Every found job is scored and summarized. You mark each one
-           YES / NO / MAYBE. Nothing moves forward without a YES.
-
-Layer 3 — Apply       submit → /career-ops apply-batch
-           Mark YES and hit submit. The system instantly rechecks the
-           posting, tailors your CV to the JD, generates a PDF, and
-           writes a cover letter. A preview card appears — glance at
-           it, say "Apply Now", and you're done. One confirmation,
-           not a manual process.
+/career-ops hermes
 ```
 
-**The goal is quality, not volume.** A well-targeted application to 5 companies beats a generic blast to 50.
+Hermes orchestrates the entire pipeline end to end. You make two decisions:
+1. **YES / NO / MAYBE** on each shortlisted job
+2. **"Apply Now"** on the preview card before each submission
+
+Everything else — scanning, verification, ranking, tailoring, quality-checking — is automated.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                    HERMES                        │
+│             Orchestrator Agent                   │
+│  Coordinates all phases, applies threshold       │
+│  routing, maintains session log                  │
+└────┬──────────────────┬──────────────────────────┘
+     │                  │
+     ▼                  ▼
+┌──────────┐    ┌────────────────────┐
+│ Agent 1  │    │     Agent 2        │
+│  Job     │    │  Resume Reviewer   │
+│Verifier  │    │                    │
+│          │    │ Independent review │
+│· Live?   │    │ of tailored docs   │
+│· Real?   │    │ before preview:    │
+│· Eligible│    │ · No invented facts│
+│· Fit score    │ · ATS coverage     │
+│          │    │ · Cover letter JD- │
+│PASS/SKIP │    │   specific?        │
+└──────────┘    │ APPROVED/REVISE    │
+                └────────────────────┘
+```
+
+### Full pipeline flow
+
+```
+/career-ops hermes
+       │
+       ▼
+Phase 1 — DISCOVER
+  Scan 30+ portals → raw job list
+
+       │
+       ▼
+Phase 2 — VERIFY  [Agent 1: Job Verifier]
+  Per job: liveness check · authenticity · location eligibility · fit score
+  PASS → scored job    SKIP → logged with reason
+
+       │ PASS jobs only
+       ▼
+Phase 3 — RANK
+  Tier 1  (4.5+)    → fast-lane
+  Tier 2  (3.5–4.4) → standard review
+  Tier 3  (<3.5)    → auto-skip, logged
+
+       │ Tier 1 + 2 only
+       ▼
+Phase 4 — HUMAN REVIEW  ← your first decision
+  Ranked shortlist presented, Tier 1 first.
+  You mark YES / NO / MAYBE per job.
+  Say "submit" to proceed.
+
+       │ YES jobs only
+       ▼
+Phase 5 — TAILOR
+  Per YES job: re-verify liveness · extract JD · tailor CV ·
+  generate PDF · write cover letter · answer form questions
+
+       │
+       ▼
+Phase 6 — QUALITY GATE  [Agent 2: Resume Reviewer]
+  Checks tailored docs against original CV:
+  · No invented metrics or experience
+  · ATS keyword coverage
+  · Cover letter is JD-specific, not templated
+  APPROVED → preview card    REVISE → fix + re-check
+
+       │ APPROVED
+       ▼
+Phase 7 — PREVIEW & APPLY  ← your second decision
+  Preview card: CV path · cover letter snippet · salary · form Q&As
+  Say "Apply Now" → system opens URL, pastes content
+  You click the final Submit button yourself.
+  Tracker updated to Applied.
+```
+
+---
+
+## Tier Routing
+
+| Score | Tier | Flow |
+|-------|------|------|
+| 4.5–5.0 | Tier 1 — Fast-lane | Preview card → "Apply Now" (one word) |
+| 3.5–4.4 | Tier 2 — Standard | Preview card → confirm |
+| < 3.5 | Tier 3 — Skip | Auto-skipped, reason logged to `data/hermes-log.md` |
+
+You always see the preview card before anything is submitted. The tier only affects how much friction is in the flow — not whether you're in control.
 
 ---
 
 ## Credit & Foundation
 
-**Layer 1 is built entirely on [career-ops](https://github.com/santifer/career-ops) by [Santiago Ferrer (santifer)](https://santifer.io).**
+**The scanning, evaluation, CV generation, and portal infrastructure is built entirely on [career-ops](https://github.com/santifer/career-ops) by [Santiago Ferrer (santifer)](https://santifer.io).**
 
-Career-ops is an open-source AI job search pipeline that Santiago built and used personally to:
-- Evaluate **740+ job offers**
-- Generate **100+ tailored CVs**
-- Land a **Head of Applied AI** role
+Santiago built career-ops to solve his own job search — and it worked:
+- Evaluated **740+ job offers**
+- Generated **100+ tailored CVs**
+- Landed a **Head of Applied AI** role
 
-It provides the evaluation engine, CV generation, portal scanning, batch processing, and application tracking that powers the foundation of this system. The multi-language support (German/French), the scoring framework, negotiation scripts, and the ethical guardrails are all from the original.
+The multi-language support (German/French), scoring framework, negotiation scripts, and ethical guardrails are all from the original.
 
-**Layers 2 and 3** — the shortlist approval gate (`modes/shortlist.md`) and the apply-batch automation (`modes/apply-batch.md`) — are original additions built on top of that foundation.
+**New additions in this repo:**
+- `modes/hermes.md` — Orchestrator agent coordinating the full pipeline
+- `modes/agents/job-verifier.md` — Agent 1: liveness, authenticity, eligibility, fit scoring
+- `modes/agents/resume-reviewer.md` — Agent 2: independent CV/cover letter quality gate
+- `modes/shortlist.md` — Shortlist management with YES/NO/MAYBE decisions
+- `modes/apply-batch.md` — Fast-lane apply with preview card
 
-> ⭐ If you find this useful, go star the original: **[github.com/santifer/career-ops](https://github.com/santifer/career-ops)**
+> ⭐ Star the original: **[github.com/santifer/career-ops](https://github.com/santifer/career-ops)**
 
 ---
 
@@ -52,46 +143,10 @@ It provides the evaluation engine, CV generation, portal scanning, batch process
 
 | Tool | Role |
 |------|------|
-| [Claude Code](https://claude.ai/code) | AI agent driving the entire pipeline |
-| Node.js + Playwright | PDF generation, browser automation |
+| [Claude Code](https://claude.ai/code) | Hermes orchestrator + all agents |
+| Node.js + Playwright | PDF generation, browser automation, liveness checks |
 | Markdown + YAML | Data storage and configuration |
 | HTML/CSS | CV template and design |
-
----
-
-## How It Works
-
-### Layer 1 — Discovery *(from career-ops by santifer)*
-
-Scans 30+ job portals and company career pages configured in `portals.yml`. Each scan:
-- Checks company career pages directly via Playwright
-- Runs targeted search queries on Greenhouse, Ashby, Lever, and Wellfound
-- Filters results by title keywords and location eligibility
-- Deduplicates against scan history so you never see the same listing twice
-
-### Layer 2 — Shortlist *(new)*
-
-Every job found by the scanner is added to `data/shortlist.md` with:
-- A fit score (1–5) based on skills, archetype match, salary, and remote eligibility
-- Salary estimate (from the JD or researched via web search)
-- A one-line "why it fits" tied to a real proof point from your CV
-- A ⚠️ flag if the role is US-only or has other eligibility concerns
-
-You review each card and mark **YES / NO / MAYBE**. Only YES rows move to Layer 3. Nothing is generated, sent, or filed without your explicit approval.
-
-### Layer 3 — Apply *(new)*
-
-Mark a job YES and say "submit". Within ~30 seconds:
-
-1. **Rechecks** the posting is still live (Playwright browser snapshot) — closed roles are skipped automatically
-2. **Tailors** your CV — reorders bullets to mirror JD language, surfaces the 2–3 most relevant proof points, matches ATS keywords exactly without inventing anything
-3. **Generates** a PDF from the tailored HTML via Playwright
-4. **Writes** a cover letter (250 words max, JD-specific, no generic filler)
-5. **Answers** any custom application questions found on the form
-6. **Shows a preview card** — cover letter snippet, PDF path, salary field, custom Q&As
-7. **Waits for "Apply Now"** — you glance at the preview and confirm with one word
-
-The system opens the application URL with everything ready to paste. You click the final Submit button yourself — one deliberate action, not a hands-off blast.
 
 ---
 
@@ -106,8 +161,8 @@ The system opens the application URL with everything ready to paste. You click t
 ### Install
 
 ```bash
-git clone https://github.com/anup1/lets-find-a-job.git
-cd lets-find-a-job
+git clone https://github.com/AvacadoDEV/Lets-find-a-job.git
+cd Lets-find-a-job
 npm install
 npx playwright install chromium
 npm run doctor
@@ -117,8 +172,8 @@ npm run doctor
 
 1. **CV** — Create `cv.md` with your experience in markdown (see `examples/cv-example.md`)
 2. **Profile** — Copy `config/profile.example.yml` → `config/profile.yml` and fill in your details
-3. **Narrative** — Copy `modes/_profile.template.md` → `modes/_profile.md` and customize your archetypes, superpowers, and story bank
-4. **Portals** — Copy `templates/portals.example.yml` → `portals.yml` and adjust companies and keywords for your target roles
+3. **Narrative** — Copy `modes/_profile.template.md` → `modes/_profile.md` and customise your archetypes, superpowers, and story bank
+4. **Portals** — Copy `templates/portals.example.yml` → `portals.yml` and adjust companies and search keywords for your target roles
 
 > **Note:** `cv.md`, `config/profile.yml`, `modes/_profile.md`, `portals.yml`, and all job data are gitignored — your personal information stays local.
 
@@ -136,57 +191,71 @@ All checks should pass before you start.
 
 Open Claude Code in this directory (`claude`), then:
 
+### Hermes (recommended)
+
 | Command | What it does |
 |---------|--------------|
-| `/career-ops scan` | Search portals for new roles → adds to shortlist |
+| `/career-ops hermes` | Full pipeline: scan → verify → rank → shortlist → tailor → review → apply |
+| `/career-ops hermes shortlist` | Skip scan, start from existing shortlist |
+| `/career-ops hermes apply` | Skip to apply phase for existing YES jobs |
+| `/career-ops hermes status` | Print current session log summary |
+
+### Manual controls
+
+| Command | What it does |
+|---------|--------------|
+| `/career-ops scan` | Scan portals, add raw jobs to pipeline |
 | `/career-ops shortlist review` | Review pending jobs, mark YES / NO / MAYBE |
-| `/career-ops shortlist add <url>` | Manually add and score a specific job URL |
-| `/career-ops shortlist status` | Count: pending / YES / NO / MAYBE |
-| `/career-ops apply-batch` | Generate tailored CV + cover letter for all YES jobs |
-| `/career-ops apply-batch job 003` | Generate documents for one specific job |
-| `/career-ops <JD url or text>` | Full auto-pipeline for a single job |
-| `/career-ops oferta` | Evaluate a role (A–F) without generating a PDF |
+| `/career-ops shortlist add <url>` | Manually score and add a specific job |
+| `/career-ops apply-batch` | Fast-lane apply for all YES jobs |
 | `/career-ops tracker` | Application status overview |
-| `/career-ops deep` | Deep company research before an interview |
-| `/career-ops contacto` | Find LinkedIn contacts + draft outreach message |
+| `/career-ops deep` | Deep company research |
+| `/career-ops contacto` | Find LinkedIn contacts + draft outreach |
+| `/career-ops <JD url or text>` | Single-job auto-pipeline |
 
 ---
 
 ## File Structure
 
 ```
-├── cv.md                        # Your canonical CV (gitignored — stays local)
+├── cv.md                            # Your canonical CV (gitignored)
 ├── config/
-│   ├── profile.yml              # Your identity, targets, comp (gitignored)
-│   └── profile.example.yml      # Template to copy from
+│   ├── profile.yml                  # Identity, targets, comp (gitignored)
+│   └── profile.example.yml          # Template
 ├── modes/
-│   ├── _profile.md              # Your archetypes + story bank (gitignored)
-│   ├── _profile.template.md     # Template to copy from
-│   ├── _shared.md               # Scoring logic, global rules
-│   ├── shortlist.md             # ★ Shortlist mode (Layer 2, new)
-│   ├── apply-batch.md           # ★ Apply-batch mode (Layer 3, new)
-│   └── ...                      # Other career-ops modes (from santifer)
+│   ├── hermes.md                    # ★ Orchestrator (new)
+│   ├── agents/
+│   │   ├── job-verifier.md          # ★ Agent 1: Job Verifier (new)
+│   │   └── resume-reviewer.md       # ★ Agent 2: Resume Reviewer (new)
+│   ├── shortlist.md                 # ★ Shortlist mode (new)
+│   ├── apply-batch.md               # ★ Apply-batch fast-lane (new)
+│   ├── _profile.md                  # Your archetypes + story bank (gitignored)
+│   ├── _profile.template.md         # Template
+│   ├── _shared.md                   # Scoring logic, global rules
+│   └── ...                          # Other career-ops modes
 ├── data/
-│   ├── shortlist.md             # Your job shortlist (gitignored)
-│   ├── applications.md          # Application tracker (gitignored)
-│   └── pipeline.md              # URL inbox (gitignored)
-├── portals.yml                  # Company portal config (gitignored)
+│   ├── hermes-log.md                # Session log: scans, verdicts, applications
+│   ├── shortlist.md                 # Job shortlist (gitignored)
+│   ├── applications.md              # Tracker (gitignored)
+│   └── pipeline.md                  # URL inbox (gitignored)
+├── portals.yml                      # Portal config (gitignored)
 ├── templates/
-│   ├── cv-template.html         # CV HTML/CSS design
-│   └── portals.example.yml      # Portals template
-├── output/                      # Generated PDFs (gitignored)
-└── reports/                     # Evaluation reports (gitignored)
+│   ├── cv-template.html             # CV design
+│   └── portals.example.yml          # Portals template
+├── output/                          # Generated PDFs (gitignored)
+└── reports/                         # Evaluation reports (gitignored)
 ```
 
 ---
 
 ## Design Principles
 
-- **Human in the loop** — every decision point requires explicit approval
-- **Quality over quantity** — roles scoring below 3.5/5 are flagged; below 3.0 are not recommended
-- **No auto-submit** — the system generates, you send
-- **Respect everyone's time** — a recruiter's attention is valuable; only send what's worth reading
-- **Data stays local** — your CV, profile, and job data are gitignored and never committed
+- **Human in the loop** — you make exactly two decisions per application: YES on the shortlist, Apply Now on the preview
+- **Independent quality gate** — Agent 2 reviews tailored documents it didn't produce, catching what a self-reviewing agent would miss
+- **Rank-based routing** — high-confidence matches get less friction, not zero oversight
+- **No invented content** — Agent 2 hard-blocks any CV that contains metrics or experience not in your original
+- **No auto-submit** — the system opens the form and pastes content; you click Submit
+- **Data stays local** — CV, profile, and job data are gitignored and never committed
 
 ---
 
@@ -194,9 +263,7 @@ Open Claude Code in this directory (`claude`), then:
 
 This project is a fork of and extension to **[career-ops](https://github.com/santifer/career-ops)** by **[Santiago Ferrer](https://santifer.io)**. The portal scanner, evaluation engine, CV generation pipeline, application tracker, batch processing, and multi-language support are all from Santiago's original work.
 
-Santiago built career-ops to solve his own job search — and it worked. His portfolio is also open source: **[cv-santiago](https://github.com/santifer/cv-santiago)**.
-
-The shortlist approval layer (Layer 2) and apply-batch automation (Layer 3) in this repo are new additions contributed back to the community.
+His portfolio is also open source: **[cv-santiago](https://github.com/santifer/cv-santiago)**.
 
 ---
 

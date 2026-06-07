@@ -14,6 +14,11 @@ Determine the mode from `{{mode}}`:
 | Input | Mode |
 |-------|------|
 | (empty / no args) | `discovery` -- Show command menu |
+| `hermes` | `hermes` -- Full orchestrated pipeline |
+| `hermes shortlist` | `hermes` (sub: shortlist) |
+| `hermes apply` | `hermes` (sub: apply) |
+| `hermes status` | `hermes` (sub: status) |
+| `hermes reset` | `hermes` (sub: reset) |
 | JD text or URL (no sub-command) | **`auto-pipeline`** |
 | `oferta` | `oferta` |
 | `ofertas` | `ofertas` |
@@ -46,11 +51,15 @@ Show this menu:
 ```
 career-ops -- Command Center
 
-PIPELINE (recommended flow):
+HERMES (fully orchestrated — recommended):
+  /career-ops hermes           → Scan → verify → rank → shortlist → tailor →
+                                 quality-check → preview → apply. You make two
+                                 decisions: YES/NO per job, "Apply Now" per preview.
+
+MANUAL PIPELINE:
   1. /career-ops scan          → Discover new jobs from portals → added to shortlist
   2. /career-ops shortlist     → Review jobs, mark YES / NO / MAYBE
   3. /career-ops apply-batch   → Generate tailored CV + cover letter for YES jobs
-     (You review documents, then apply yourself)
 
 SINGLE JOB:
   /career-ops {JD or URL}      → AUTO-PIPELINE: evaluate + report + PDF + tracker
@@ -86,7 +95,7 @@ After determining the mode, load the necessary files before executing:
 ### Modes that require `_shared.md` + their mode file:
 Read `modes/_shared.md` + `modes/{mode}.md`
 
-Applies to: `auto-pipeline`, `oferta`, `ofertas`, `pdf`, `contacto`, `apply`, `apply-batch`, `shortlist`, `pipeline`, `scan`, `batch`
+Applies to: `auto-pipeline`, `oferta`, `ofertas`, `pdf`, `contacto`, `apply`, `apply-batch`, `shortlist`, `hermes`, `pipeline`, `scan`, `batch`
 
 ### Standalone modes (only their mode file):
 Read `modes/{mode}.md`
@@ -94,7 +103,7 @@ Read `modes/{mode}.md`
 Applies to: `tracker`, `deep`, `training`, `project`
 
 ### Modes delegated to subagent:
-For `scan`, `apply` (with Playwright), `apply-batch` (with Playwright), and `pipeline` (3+ URLs): launch as Agent with the content of `_shared.md` + `modes/{mode}.md` injected into the subagent prompt.
+For `hermes`, `scan`, `apply` (with Playwright), `apply-batch` (with Playwright), and `pipeline` (3+ URLs): launch as Agent with the content of `_shared.md` + `modes/{mode}.md` injected into the subagent prompt.
 
 ```
 Agent(
