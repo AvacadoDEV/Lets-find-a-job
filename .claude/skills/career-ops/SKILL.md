@@ -25,6 +25,11 @@ Determine the mode from `{{mode}}`:
 | `tracker` | `tracker` |
 | `pipeline` | `pipeline` |
 | `apply` | `apply` |
+| `apply-batch` | `apply-batch` |
+| `shortlist` | `shortlist` |
+| `shortlist add` | `shortlist` (sub: add) |
+| `shortlist review` | `shortlist` (sub: review) |
+| `shortlist status` | `shortlist` (sub: status) |
 | `scan` | `scan` |
 | `batch` | `batch` |
 
@@ -41,20 +46,32 @@ Show this menu:
 ```
 career-ops -- Command Center
 
-Available commands:
-  /career-ops {JD}      → AUTO-PIPELINE: evaluate + report + PDF + tracker (paste text or URL)
-  /career-ops pipeline  → Process pending URLs from inbox (data/pipeline.md)
-  /career-ops oferta    → Evaluation only A-F (no auto PDF)
-  /career-ops ofertas   → Compare and rank multiple offers
-  /career-ops contacto  → LinkedIn power move: find contacts + draft message
-  /career-ops deep      → Deep research prompt about company
-  /career-ops pdf       → PDF only, ATS-optimized CV
-  /career-ops training  → Evaluate course/cert against North Star
-  /career-ops project   → Evaluate portfolio project idea
-  /career-ops tracker   → Application status overview
-  /career-ops apply     → Live application assistant (reads form + generates answers)
-  /career-ops scan      → Scan portals and discover new offers
-  /career-ops batch     → Batch processing with parallel workers
+PIPELINE (recommended flow):
+  1. /career-ops scan          → Discover new jobs from portals → added to shortlist
+  2. /career-ops shortlist     → Review jobs, mark YES / NO / MAYBE
+  3. /career-ops apply-batch   → Generate tailored CV + cover letter for YES jobs
+     (You review documents, then apply yourself)
+
+SINGLE JOB:
+  /career-ops {JD or URL}      → AUTO-PIPELINE: evaluate + report + PDF + tracker
+  /career-ops oferta           → Evaluation only A-F (no auto PDF)
+  /career-ops pdf              → Generate tailored CV PDF for a specific job
+
+RESEARCH & OUTREACH:
+  /career-ops ofertas          → Compare and rank multiple offers
+  /career-ops contacto         → LinkedIn: find contacts + draft message
+  /career-ops deep             → Deep company research
+
+TRACKING:
+  /career-ops tracker          → Application status overview
+  /career-ops shortlist status → Count: pending / YES / NO / MAYBE
+
+ADVANCED:
+  /career-ops pipeline         → Process pending URLs from inbox (data/pipeline.md)
+  /career-ops apply            → Live application assistant (reads form + drafts answers)
+  /career-ops training         → Evaluate course/cert against North Star
+  /career-ops project          → Evaluate portfolio project idea
+  /career-ops batch            → Batch processing with parallel workers
 
 Inbox: add URLs to data/pipeline.md → /career-ops pipeline
 Or paste a JD directly to run the full pipeline.
@@ -69,7 +86,7 @@ After determining the mode, load the necessary files before executing:
 ### Modes that require `_shared.md` + their mode file:
 Read `modes/_shared.md` + `modes/{mode}.md`
 
-Applies to: `auto-pipeline`, `oferta`, `ofertas`, `pdf`, `contacto`, `apply`, `pipeline`, `scan`, `batch`
+Applies to: `auto-pipeline`, `oferta`, `ofertas`, `pdf`, `contacto`, `apply`, `apply-batch`, `shortlist`, `pipeline`, `scan`, `batch`
 
 ### Standalone modes (only their mode file):
 Read `modes/{mode}.md`
@@ -77,7 +94,7 @@ Read `modes/{mode}.md`
 Applies to: `tracker`, `deep`, `training`, `project`
 
 ### Modes delegated to subagent:
-For `scan`, `apply` (with Playwright), and `pipeline` (3+ URLs): launch as Agent with the content of `_shared.md` + `modes/{mode}.md` injected into the subagent prompt.
+For `scan`, `apply` (with Playwright), `apply-batch` (with Playwright), and `pipeline` (3+ URLs): launch as Agent with the content of `_shared.md` + `modes/{mode}.md` injected into the subagent prompt.
 
 ```
 Agent(
