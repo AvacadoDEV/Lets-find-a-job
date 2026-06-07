@@ -8,11 +8,11 @@
 
 ## What This Is
 
-This is a personal job search system tailored for **Technical Product Manager** roles (remote, Canada-first). It's a 3-layer pipeline:
+A job search system you configure once for your role, location, and salary target — then let run. Fork it, point it at your industry, and it handles the grunt work. It's a 3-layer pipeline:
 
 ```
 Layer 1 — Discover    /career-ops scan
-           Searches 30+ company portals and job boards for matching PM roles.
+           Searches 30+ company portals and job boards for matching roles.
            Filters by title, location, and salary range automatically.
 
 Layer 2 — Shortlist   /career-ops shortlist review
