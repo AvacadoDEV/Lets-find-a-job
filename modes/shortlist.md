@@ -60,9 +60,25 @@ URL: https://job-boards.greenhouse.io/stackadapt/jobs/4111884009
    - YES → move row to **Approved** section, change Decision cell to `✅ YES`
    - NO → move row to **Archive** section, change Decision to `❌ NO`
    - MAYBE → keep in Pending, change Decision to `🔶 MAYBE`
-6. After all decisions: print summary count and say "Run `/career-ops apply-batch` when ready to generate documents for your YES roles."
+6. After collecting all decisions, show a submit prompt for each YES job:
 
-**NEVER apply to any job in this step. This step is decision-only.**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  {N} job(s) approved:
+
+  [001] StackAdapt — Technical PM, AI
+  [003] Grafana Labs — Senior PM
+
+  Say "submit" to fast-lane all YES jobs (recheck → tailor CV →
+  generate PDF → cover letter → preview → one click to apply).
+  Or name one: "submit 001"
+  Or say "later" to stop here and run /career-ops apply-batch when ready.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+7. If user says "submit" or "submit {num}": hand off to `apply-batch` mode for those jobs.
+
+**This step collects decisions and optionally triggers the fast-lane. It never submits applications itself.**
 
 ---
 

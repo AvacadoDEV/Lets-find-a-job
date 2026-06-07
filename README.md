@@ -19,11 +19,12 @@ Layer 2 — Shortlist   /career-ops shortlist review
            Every found job is scored and summarized. You mark each one
            YES / NO / MAYBE. Nothing moves forward without a YES.
 
-Layer 3 — Apply       /career-ops apply-batch
-           For each YES job: verifies it's still live, tailors your CV
-           to the JD, generates a PDF, writes a cover letter, and produces
-           an application checklist. Hard stop — you review everything
-           and apply yourself.
+Layer 3 — Apply       submit → /career-ops apply-batch
+           Mark YES and hit submit. The system instantly rechecks the
+           posting, tailors your CV to the JD, generates a PDF, and
+           writes a cover letter. A preview card appears — glance at
+           it, say "Apply Now", and you're done. One confirmation,
+           not a manual process.
 ```
 
 **The goal is quality, not volume.** A well-targeted application to 5 companies beats a generic blast to 50.
@@ -80,15 +81,17 @@ You review each card and mark **YES / NO / MAYBE**. Only YES rows move to Layer 
 
 ### Layer 3 — Apply *(new)*
 
-For each YES job, the system:
-1. **Verifies** the posting is still live (Playwright browser snapshot)
+Mark a job YES and say "submit". Within ~30 seconds:
+
+1. **Rechecks** the posting is still live (Playwright browser snapshot) — closed roles are skipped automatically
 2. **Tailors** your CV — reorders bullets to mirror JD language, surfaces the 2–3 most relevant proof points, matches ATS keywords exactly without inventing anything
 3. **Generates** a PDF from the tailored HTML via Playwright
 4. **Writes** a cover letter (250 words max, JD-specific, no generic filler)
-5. **Produces** an application checklist with any custom form questions pre-answered
-6. **Stops** — you review the documents and click Apply yourself
+5. **Answers** any custom application questions found on the form
+6. **Shows a preview card** — cover letter snippet, PDF path, salary field, custom Q&As
+7. **Waits for "Apply Now"** — you glance at the preview and confirm with one word
 
-The system never submits, clicks, or sends anything on your behalf.
+The system opens the application URL with everything ready to paste. You click the final Submit button yourself — one deliberate action, not a hands-off blast.
 
 ---
 

@@ -2,126 +2,176 @@
 
 ## Purpose
 
-For every `✅ YES` row in `data/shortlist.md` that does not yet have a generated PDF, produce:
-1. A tailored CV (HTML → PDF via Playwright)
-2. A cover letter (1 page, JD-specific)
-3. A pre-filled application checklist
+Fast-lane application flow. When a job is marked `✅ YES` and the user triggers apply-batch,
+the system immediately:
+1. Rechecks the posting is still live
+2. Tailors the CV to the JD
+3. Generates a PDF
+4. Writes a cover letter
+5. Answers any custom application questions
+6. Presents a **preview card** for a quick glance
+7. Waits for a single **"Apply Now"** confirmation before opening the application URL
 
-**HARD RULE: This mode NEVER submits, clicks Apply, or sends anything.**
-It stops at "documents ready — review before applying."
+**The user sees everything before it goes out. One final confirmation, then done.**
 
 ---
 
 ## Trigger
 
-User says: "apply-batch", "generate documents for my YES jobs", "prepare applications"
+- User marks a job YES in the shortlist and says "submit", "apply", or "go"
+- User says "apply-batch" to process all YES jobs in sequence
+- User says "apply for job 003" to fast-lane a specific job
+
+---
+
+## Flow
+
+```
+YES + Submit
+     ↓
+[~30 seconds]
+Liveness check → Extract JD → Tailor CV → Generate PDF → Write cover letter
+     ↓
+Preview card shown to user
+     ↓
+User says "Apply Now" / "looks good" / "send it"
+     ↓
+System opens application URL and provides all documents ready to paste
+     ↓
+Tracker updated to Applied
+```
 
 ---
 
 ## Steps
 
 ### 0. Guard check
-Read `data/shortlist.md`. Find all rows where Decision = `✅ YES`.
-If none: tell the user "No approved jobs yet. Review your shortlist first with `/career-ops shortlist review`."
+Read `data/shortlist.md`. Find rows where Decision = `✅ YES` and status is not already `Applied`.
+If none: "No approved jobs ready. Review your shortlist first with `/career-ops shortlist review`."
 
-### 1. For each YES row (process one at a time — never parallel Playwright)
+### 1. For each YES job (one at a time — never parallel Playwright)
 
-#### 1a. Verify the job is still active
-- Navigate to the URL with `browser_navigate` + `browser_snapshot`
-- If the page shows only header/footer with no JD → mark as `❌ CLOSED` in shortlist and skip
-- If active → continue
+#### 1a. Recheck liveness
+- `browser_navigate` to the job URL + `browser_snapshot`
+- Only footer/navbar with no JD content → mark `❌ CLOSED` in shortlist, skip, notify user
+- Active JD found → continue immediately
 
-#### 1b. Extract the full JD
-Read title, responsibilities, requirements, nice-to-haves, and any application questions.
+#### 1b. Extract full JD
+Title, company, responsibilities, requirements, nice-to-haves, and any visible application form questions.
 
 #### 1c. Read candidate files
-- `cv.md` — canonical CV
+- `cv.md` — canonical CV (NEVER modify this file)
 - `article-digest.md` — proof points (if exists)
 - `modes/_profile.md` — archetypes, superpowers, story bank
-- `config/profile.yml` — identity and comp
+- `config/profile.yml` — identity, comp targets
 - `templates/cv-template.html` — design template
 
 #### 1d. Tailor the CV
-Reorder and rewrite bullets to mirror JD language. Rules:
 - NEVER invent experience or metrics — only reframe what exists in cv.md
-- Lead Professional Summary with the role title and company name
-- Surface the 2–3 proof points most relevant to this specific JD
-- Match keywords from the JD for ATS (exact phrases, not synonyms)
-- Keep to 1 page if possible; 2 pages max
-- Keep the Skills section last — lead with impact, not tools
+- Lead Professional Summary with the exact role title and company name
+- Surface the 2–3 proof points most relevant to this JD
+- Mirror JD keyword language exactly for ATS (not synonyms)
+- 1 page preferred; 2 pages max
+- Skills section last — lead with impact
 
 #### 1e. Generate PDF
 Write tailored HTML to `output/temp-{num}-{slug}.html`
 Run: `node generate-pdf.mjs output/temp-{num}-{slug}.html output/{num}-{slug}-{date}.pdf`
-Confirm PDF exists before continuing.
+Confirm file exists before continuing.
 
 #### 1f. Write cover letter
 File: `output/{num}-{slug}-cover-{date}.md`
-Format:
+
+Structure:
 ```
-{Company Hiring Team / Hiring Manager if known},
+{Hiring Team / Hiring Manager name if found in JD},
 
-[Para 1 — 2 sentences] Why this role, why this company. Reference something specific from the JD or company (not generic).
+[Para 1 — 2 sentences] Why this role, why this company. One specific detail
+from the JD or company — not generic.
 
-[Para 2 — 3 sentences] Your strongest proof point for THIS role. Quote a JD requirement, map it to a real result from your CV. Use numbers.
+[Para 2 — 3 sentences] Strongest proof point for THIS role. Quote a JD
+requirement, map it to a real result from the CV with a number.
 
-[Para 3 — 2 sentences] What you bring that others don't. Your differentiator (technical PM from X, ad-serving scale, self-serve data analysis).
+[Para 3 — 2 sentences] The differentiator — what the candidate brings that
+others don't. Specific, not vague.
 
-[Closing — 1 sentence] Direct ask for conversation.
+[Closing — 1 sentence] Direct ask for a conversation.
 
-Anup Rao
-905-782-5239 · Raonoops@gmail.com · hire.anuprao.dev
-```
-
-Rules:
-- 250 words max
-- No "I am passionate about" or corporate filler
-- Every sentence earns its place — cut anything that doesn't add signal
-- Reference the JD by name or one specific detail to show it's not a template
-
-#### 1g. Write application checklist
-File: `output/{num}-{slug}-checklist-{date}.md`
-```markdown
-# Application Checklist — {Company} · {Role}
-
-- [ ] Review tailored CV: output/{num}-{slug}-{date}.pdf
-- [ ] Review cover letter: output/{num}-{slug}-cover-{date}.md
-- [ ] Application URL: {url}
-- [ ] Confirm salary field: target $X CAD (minimum $75K CAD)
-- [ ] Note any custom questions in the application form (answer below)
-- [ ] Click Apply yourself — career-ops does NOT submit
-
-## Custom Application Questions
-{list any questions found on the application page, with drafted answers}
-
-## Notes
-{any flags: visa question, salary transparency, referral needed, etc.}
+{candidate name}
+{phone} · {email} · {portfolio}
 ```
 
-#### 1h. Update shortlist
-Add PDF filename to the row in `data/shortlist.md`. Change Decision cell to `✅ YES · PDF ready`.
+Rules: 250 words max · no filler phrases · every sentence earns its place ·
+reference one specific JD detail so it's clearly not a template.
 
-#### 1i. Update applications tracker
-Write TSV to `batch/tracker-additions/{num}-{slug}.tsv` with status `Evaluated` (not Applied — user applies manually).
+#### 1g. Answer custom application questions
+If the JD page or application form has visible custom questions (e.g. "Why do you want
+to work here?", "Describe a product you've shipped"), draft concise answers now.
+Include them in the preview card.
+
+#### 1h. Show preview card
+
+Present this to the user before doing anything else:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  READY TO APPLY — {Company} · {Role}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  CV:           output/{filename}.pdf  ← tailored to this JD
+  Cover letter: output/{filename}-cover-{date}.md
+  URL:          {application url}
+  Salary field: {target from profile.yml}
+
+  Cover letter preview:
+  ┌─────────────────────────────────────────┐
+  │ {first 3 lines of cover letter}...      │
+  └─────────────────────────────────────────┘
+
+  {If custom questions found:}
+  Custom questions answered:
+  Q: {question}
+  A: {drafted answer}
+
+  Say "Apply Now" to proceed, or "skip" to move to the next job.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**WAIT for user response. Do not proceed until confirmed.**
+
+#### 1i. On "Apply Now" confirmation
+
+- Navigate browser to the application URL
+- Provide all content ready to paste: cover letter text, custom question answers, salary figure
+- Guide user through the form if needed (field by field)
+- **STOP before clicking the final Submit/Apply button** — user clicks it themselves
+- After user confirms they submitted: update shortlist Decision to `✅ Applied`
+
+#### 1j. Update tracker
+Write TSV to `batch/tracker-additions/{num}-{slug}.tsv` with status `Applied`.
 
 ### 2. Summary after all jobs processed
 
 ```
-Done. Generated documents for {N} roles:
+Done. Processed {N} roles:
 
-  ✅ {Company} — {Role} → output/{filename}.pdf
-  ✅ {Company} — {Role} → output/{filename}.pdf
+  ✅ Applied  — {Company} · {Role}
+  ❌ Closed   — {Company} · {Role} (posting no longer active)
+  ⏭ Skipped  — {Company} · {Role} (user skipped)
 
-Next step: review each PDF and cover letter, then apply yourself at the URLs in each checklist.
 Run `node merge-tracker.mjs` to sync the tracker.
 ```
 
 ---
 
-## Single-job variant
+## Single-job fast-lane
 
-User says: "apply for job 003" or "generate documents for PointClickCare"
+"Apply for job 003" or "submit PointClickCare" → same flow, single job.
+Row must be `✅ YES` — if still PENDING: "Mark it YES in the shortlist first."
 
-Same steps as above but only for the specified row.
-The row must be `✅ YES` in the shortlist — if it's still PENDING, say:
-"That job hasn't been approved yet. Mark it YES in the shortlist first."
+---
+
+## On "skip"
+
+User says "skip" at the preview card → move to next job, mark shortlist as `⏭ SKIPPED`.
+User can revisit skipped jobs later with "apply for job {num}".
